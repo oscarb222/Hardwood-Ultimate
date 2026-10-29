@@ -1,0 +1,157 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Copy game.js</title><style>body{font:16px Arial;background:#101827;color:white;padding:20px}textarea{width:100%;height:75vh;background:#fff;color:#111;font:12px monospace}button{padding:12px;font-weight:bold}</style></head><body><h2>game.js — V28</h2><p>Click Copy all code, then open GitHub, edit lib/game.js and replace its entire contents. Commit changes.</p><button onclick="const t=document.querySelector('textarea');t.select();document.execCommand('copy');this.textContent='Copied!';">Copy all code</button><textarea readonly>&#x27;use strict&#x27;;
+const POSITIONS=[&#x27;PG&#x27;,&#x27;SG&#x27;,&#x27;SF&#x27;,&#x27;PF&#x27;,&#x27;C&#x27;];
+const clamp=(n,a,b)=&gt;Math.max(a,Math.min(b,n));
+const chance=(n)=&gt;Math.random()&lt;clamp(n,0,1);
+const distance=(a,b)=&gt;Math.hypot(a.x-b.x,a.y-b.y);
+const defaultLineup=[{name:&#x27;Rookie PG&#x27;,position:&#x27;PG&#x27;,ovr:65},{name:&#x27;Rookie SG&#x27;,position:&#x27;SG&#x27;,ovr:64},{name:&#x27;Rookie SF&#x27;,position:&#x27;SF&#x27;,ovr:63},{name:&#x27;Rookie PF&#x27;,position:&#x27;PF&#x27;,ovr:62},{name:&#x27;Rookie C&#x27;,position:&#x27;C&#x27;,ovr:61}];
+function roster(catalog,ids){
+ return POSITIONS.map((slot,i)=&gt;{
+  const id=Number(ids?.[i]);
+  const original=Number.isInteger(id)?catalog[id]:null;
+  const p=original||defaultLineup[i];
+  return {cardId:original?id:-1,name:String(p.name).slice(0,36),position:p.position||slot,slot,ovr:clamp(Math.round(p.ovr||65),1,101),jersey:(i+1)*3};
+ });
+}
+function startingPosition(team,i){
+ const row=[15,31,50,69,85][i];
+ return {x:team===0?22:78,y:row};
+}
+function createGame(room){
+ const players=Array.from({length:10},(_,j)=&gt;{
+  const team=Math.floor(j/5),idx=j%5,card=room.lineups[team][idx];
+  return {id:j,team,index:idx,...startingPosition(team,idx),name:card.name,ovr:card.ovr,position:card.position,slot:card.slot,jersey:card.jersey,points:0,steals:0};
+ });
+ return {id:room.code+&#x27;-&#x27;+Date.now()+&#x27;-&#x27;+Math.random().toString(36).slice(2,6),phase:&#x27;playing&#x27;,duration:120,remaining:120,score:[0,0],players,selected:[0,5],holder:0,ball:{x:players[0].x,y:players[0].y,flight:null},control:[{dx:0,dy:0,sprint:false},{dx:0,dy:0,sprint:false}],cooldowns:[0,0],message:&#x27;TIP OFF&#x27;,winner:null,settled:false,createdAt:Date.now()};
+}
+function positionedRating(p){return p.position===p.slot?p.ovr:clamp(Math.round(p.ovr*.9),1,101)}
+function skillBoost(p){const o=positionedRating(p);return o&gt;=90?.10:o&gt;=80?.05:0}
+function possession(game,team){
+ for(const p of game.players){const s=startingPosition(p.team,p.index);p.x=s.x;p.y=s.y}
+ game.holder=team*5;
+ game.selected[team]=game.holder;
+ game.ball.flight=null;
+ game.ball.x=game.players[game.holder].x;
+ game.ball.y=game.players[game.holder].y;
+}
+function action(game,team,type){
+ if(game.phase!==&#x27;playing&#x27;||game.cooldowns[team]&gt;0)return;
+ const controlled=game.players[game.selected[team]],holder=game.holder&gt;=0?game.players[game.holder]:null;
+ if(type===&#x27;switch&#x27;){
+  game.selected[team]=team*5+(game.selected[team]-team*5+1)%5;
+  game.cooldowns[team]=.13;return;
+ }
+ if(type===&#x27;pass&#x27;&amp;&amp;holder&amp;&amp;holder.team===team){
+  const allies=game.players.filter(p=&gt;p.team===team&amp;&amp;p.id!==holder.id);
+  // Select a nearby open teammate rather than teleporting the ball to the target.
+  allies.sort((a,b)=&gt;{const open=p=&gt;Math.min(...game.players.filter(d=&gt;d.team!==team).map(d=&gt;distance(d,p)));const targetHoop=team===0?94:6;const quality=p=&gt;Math.min(open(p),18)*1.6-Math.abs(targetHoop-p.x)*.11-distance(holder,p)*.15;return quality(b)-quality(a)});
+  const target=allies[0];
+  game.ball.flight={kind:&#x27;pass&#x27;,fromX:holder.x,fromY:holder.y,toX:target.x,toY:target.y,target:target.id,elapsed:0,duration:clamp(distance(holder,target)/45,.22,.7)};
+  game.ball.x=holder.x;game.ball.y=holder.y;game.holder=-1;
+  game.message=&#x27;PASS&#x27;;game.cooldowns[team]=.2;return;
+ }
+ if(type===&#x27;shoot&#x27;&amp;&amp;holder&amp;&amp;holder.team===team){
+  const hoop={x:team===0?94:6,y:50};const d=distance(holder,hoop);
+  const kind=d&lt;=15?&#x27;layup&#x27;:d&gt;=37?&#x27;three&#x27;:&#x27;mid&#x27;;const points=kind===&#x27;three&#x27;?3:2;
+  let accuracy=(kind===&#x27;three&#x27;?.55:kind===&#x27;mid&#x27;?.50:.60)+skillBoost(holder);
+  // Gentle positional variations retained from V_25. Defence and positioning matter.
+  if(holder.position===&#x27;C&#x27;){if(kind===&#x27;layup&#x27;)accuracy+=.02;else accuracy-=.02;}
+  else if(holder.position===&#x27;PF&#x27;){if(kind===&#x27;layup&#x27;&amp;&amp;holder.slot===&#x27;PF&#x27;)accuracy=1;else accuracy+=.01;}
+  else if(holder.position===&#x27;PG&#x27;){accuracy+=(kind===&#x27;layup&#x27;?-.02:.02);}
+  else if(holder.position===&#x27;SF&#x27;){accuracy+=.01;}
+  else if(holder.position===&#x27;SG&#x27;){accuracy+=(kind===&#x27;layup&#x27;?-.01:.02);}
+  const defenders=game.players.filter(p=&gt;p.team!==team);
+  const near=defenders.reduce((min,p)=&gt;Math.min(min,distance(p,holder)),100);
+  const contest=near&lt;5?.13:near&lt;9?.07:0;
+  accuracy=clamp(accuracy-contest,.12,accuracy===1&amp;&amp;contest===0?1:.98);
+  const duration=kind===&#x27;layup&#x27;?.34:.55;
+  game.ball.flight={kind:&#x27;shot&#x27;,fromX:holder.x,fromY:holder.y,toX:hoop.x,toY:hoop.y,elapsed:0,duration,shooter:holder.id,team,points,accuracy};
+  game.holder=-1;game.message=kind===&#x27;layup&#x27;?&#x27;LAYUP!&#x27;:points===3?&#x27;THREE-POINT ATTEMPT&#x27;:&#x27;JUMP SHOT&#x27;;game.cooldowns[team]=.32;return;
+ }
+ if(type===&#x27;steal&#x27;&amp;&amp;holder&amp;&amp;holder.team!==team){
+  const d=distance(controlled,holder),defRating=positionedRating(controlled);
+  let stealChance=.26+(defRating&gt;=90?.06:defRating&gt;=80?.03:0);
+  if(controlled.slot===&#x27;C&#x27;)stealChance+=.015;
+  if(controlled.slot===&#x27;PG&#x27;)stealChance-=.03;
+  if(d&lt;=9&amp;&amp;chance(stealChance)){
+   game.holder=controlled.id;game.ball.x=controlled.x;game.ball.y=controlled.y;
+   controlled.steals++;game.message=&#x27;STEAL!&#x27;;
+  }else if(d&lt;=9)game.message=&#x27;STEAL MISSED&#x27;;
+  game.cooldowns[team]=.55;
+ }
+}
+function step(game,dt){
+ if(game.phase!==&#x27;playing&#x27;)return;
+ game.remaining=Math.max(0,game.remaining-dt);
+ for(let team=0;team&lt;2;team++){
+  game.cooldowns[team]=Math.max(0,game.cooldowns[team]-dt);
+  const input=game.control[team]||{};
+  const selected=game.players[game.selected[team]];
+  if(!selected)continue;
+  let dx=clamp(+input.dx||0,-1,1),dy=clamp(+input.dy||0,-1,1);
+  const mag=Math.max(1,Math.hypot(dx,dy));dx/=mag;dy/=mag;
+  const speed=input.sprint?19:14;
+  selected.x=clamp(selected.x+dx*dt*speed,3,97);
+  selected.y=clamp(selected.y+dy*dt*speed,5,95);
+  // Each team&#x27;s AI maintains spacing, tracks possession, and marks opponents.
+  const holder=game.holder&gt;=0?game.players[game.holder]:null;
+  for(const other of game.players){
+   if(other.team!==team||other.id===selected.id)continue;
+   const attacking=holder?.team===team;
+   const defending=holder&amp;&amp;holder.team!==team;
+   const lane=[18,34,50,66,82][other.index];
+   let tx,ty;
+   if(attacking){
+    // Spread across the offensive half, with forwards cutting into the paint.
+    const direction=team===0?1:-1;
+    tx=50+direction*([15,26,30,37,39][other.index]);
+    ty=lane;
+    if(other.index===4){tx=50+direction*39;ty=50;}
+    if(other.index===3){tx=50+direction*33;ty=holder.y&gt;50?35:65;}
+   }else if(defending){
+    const opponent=game.players[(1-team)*5+other.index];
+    tx=opponent.x+(team===0?3:-3);ty=opponent.y;
+    // Help defence closes toward the ball without everyone chasing it.
+    if(other.index===4){tx=tx*.65+holder.x*.35;ty=ty*.65+holder.y*.35;}
+   }else{tx=team===0?40:60;ty=lane;}
+   // Avoid clustering with nearby teammates, using a soft separation force.
+   for(const ally of game.players){
+    if(ally.team!==team||ally.id===other.id)continue;
+    const ax=other.x-ally.x,ay=other.y-ally.y,dd=Math.hypot(ax,ay);
+    if(dd&gt;0.01&amp;&amp;dd&lt;11){const force=(11-dd)/11;tx+=ax/dd*force*9;ty+=ay/dd*force*9;}
+   }
+   const speed=other.index===4?8:10;
+   const deltaX=tx-other.x,deltaY=ty-other.y,d=Math.hypot(deltaX,deltaY);
+   if(d&gt;.3){const amount=Math.min(d,speed*dt);other.x=clamp(other.x+deltaX/d*amount,3,97);other.y=clamp(other.y+deltaY/d*amount,5,95);}
+  }
+ }
+ if(game.holder&gt;=0){const h=game.players[game.holder];game.ball.x=h.x;game.ball.y=h.y;}
+ const f=game.ball.flight;
+ if(f){
+  f.elapsed+=dt;const t=clamp(f.elapsed/f.duration,0,1);
+  // Pass targets move with their teammates; the ball interpolates until caught.
+  if(f.kind===&#x27;pass&#x27;){const target=game.players[f.target];if(target){f.toX=target.x;f.toY=target.y;}}
+  game.ball.x=f.fromX+(f.toX-f.fromX)*t;game.ball.y=f.fromY+(f.toY-f.fromY)*t;
+  if(t&gt;=1){
+   game.ball.flight=null;
+   if(f.kind===&#x27;pass&#x27;){
+    game.holder=f.target;const p=game.players[f.target];game.selected[p.team]=p.id;
+    game.ball.x=p.x;game.ball.y=p.y;game.message=&#x27;PASS COMPLETE&#x27;;
+   }else if(chance(f.accuracy)){
+    game.score[f.team]+=f.points;
+    game.players[f.shooter].points+=f.points;
+    game.message=(game.remaining===0?&#x27;BUZZER BEATER! &#x27;:&#x27;&#x27;)+`+${f.points} POINTS`;
+    possession(game,1-f.team);
+   }else{game.message=&#x27;MISSED SHOT&#x27;;possession(game,1-f.team)}
+  }
+ }
+ if(game.remaining&lt;=0&amp;&amp;!game.ball.flight){
+  game.phase=&#x27;final&#x27;;game.winner=game.score[0]===game.score[1]?-1:game.score[0]&gt;game.score[1]?0:1;
+  game.message=game.winner===-1?&#x27;FINAL · DRAW&#x27;:&#x27;FINAL · &#x27;+(game.winner===0?&#x27;HOME&#x27;:&#x27;AWAY&#x27;)+&#x27; WINS&#x27;;
+ }
+}
+function snapshot(r){
+ const g=r.game;
+ return {code:r.code,phase:g?.phase||&#x27;waiting&#x27;,connected:r.seats.map(x=&gt;!!x?.socketId),names:r.seats.map(x=&gt;x?.name||&#x27;Waiting for opponent&#x27;),teams:r.seats.map(x=&gt;x?.team??0),lineups:r.lineups,gameId:g?.id||&#x27;&#x27;,remaining:g?.remaining||0,score:g?.score||[0,0],players:g?.players||[],selected:g?.selected||[0,5],holder:g?.holder??-1,ball:g?.ball||null,message:g?.message||&#x27;&#x27;,winner:g?.winner??null};
+}
+module.exports={createGame,step,action,snapshot,roster,clamp};
+</textarea></body></html>
