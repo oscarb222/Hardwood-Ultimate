@@ -3390,7 +3390,7 @@ function loadSocketScript(){if(typeof window.io==='function')return Promise.reso
 });}
 function connect(){if(socket||connecting)return;connecting=true;setStatus('Connecting to multiplayer server…');loadSocketScript().then(()=>{
  const target='https://hardwood-ultimate.onrender.com';
- socket=window.io(target,{transports:['websocket','polling'],reconnection:true,reconnectionAttempts:20,timeout:12000});
+ socket=window.io(target,{transports:['polling'],reconnection:true,reconnectionAttempts:20,timeout:12000});
  socket.on('connect',()=>{setLinkStatus(true);authenticated=false;doAuth()});
  socket.on('disconnect',()=>{authenticated=false;setLinkStatus(false);setStatus('Connection lost. Reconnecting…')});
  socket.on('connect_error',()=>{setLinkStatus(false);setStatus('The multiplayer server is unavailable. Check that your Node.js website is running.')});
