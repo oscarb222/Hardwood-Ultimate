@@ -3389,7 +3389,7 @@ function loadSocketScript(){if(typeof window.io==='function')return Promise.reso
  const el=document.createElement('script');el.src=(window.HU_ONLINE_SERVER_URL||'').replace(/\/$/,'')+'/socket.io/socket.io.js';el.onload=resolve;el.onerror=()=>reject(new Error('Multiplayer server not found. Deploy the ZIP to a Node.js host such as Render, or set HU_ONLINE_SERVER_URL for a separate website.'));document.head.appendChild(el);
 });}
 function connect(){if(socket||connecting)return;connecting=true;setStatus('Connecting to multiplayer server…');loadSocketScript().then(()=>{
- const target=window.HU_ONLINE_SERVER_URL||location.origin;
+ const target='https://hardwood-ultimate.onrender.com';
  socket=window.io(target,{transports:['websocket','polling'],reconnection:true,reconnectionAttempts:20,timeout:12000});
  socket.on('connect',()=>{setLinkStatus(true);authenticated=false;doAuth()});
  socket.on('disconnect',()=>{authenticated=false;setLinkStatus(false);setStatus('Connection lost. Reconnecting…')});
