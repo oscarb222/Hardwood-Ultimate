@@ -1,0 +1,52 @@
+/* Hardwood Ultimate multiplayer overlay */
+#mpPanel{position:fixed;inset:0;z-index:9998;background:#080d18f7;color:#f3f6fc;overflow-y:auto;overscroll-behavior:contain;font:500 15px/1.45 system-ui,Arial,sans-serif;padding:clamp(12px,3vw,30px);touch-action:pan-y}
+#mpPanel[hidden]{display:none!important}
+#mpPanel *,#mpPanel *::before,#mpPanel *::after{box-sizing:border-box}
+#mpPanel button{cursor:pointer;color:inherit;font-family:inherit}
+#mpPanel .mpWrap{width:min(1240px,100%);margin:auto}
+#mpPanel .mpHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:4px 0 16px;border-bottom:1px solid #33415c;margin-bottom:18px}
+#mpPanel .mpOver{color:#efc46e;letter-spacing:.2em;font-weight:900;font-size:11px}
+#mpPanel h2{font:900 clamp(28px,4vw,44px)/1 Impact,'Arial Narrow',sans-serif;margin:6px 0}
+#mpPanel h3{font:900 23px Impact,'Arial Narrow',sans-serif;color:#ebc373;margin:8px 0 14px}
+#mpPanel .mpSub{color:#b7c3d7;font-size:13px;margin:6px 0}
+#mpPanel .mpPill{background:#1b2942;border:1px solid #3e506e;border-radius:9px;padding:11px 16px;color:#b5c8e6}
+#mpPanel .mpPrimary{background:#efc366;color:#111927;border:0;border-radius:9px;padding:11px 20px;font-weight:900}
+#mpPanel .mpGhost{background:#202d45;border:1px solid #53627c;border-radius:9px;padding:10px 16px;font-weight:800}
+#mpPanel .mpPrimary:focus-visible,#mpPanel .mpGhost:focus-visible{outline:3px solid #fff;outline-offset:2px}
+#mpPanel .mpPrimary:disabled,#mpPanel .mpGhost:disabled{opacity:.35;cursor:not-allowed}
+#mpPanel .mpCard{background:#131e32;border:1px solid #334461;border-radius:15px;padding:20px;margin-bottom:14px}
+#mpPanel .mpCols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+#mpPanel .mpForm{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+#mpPanel .mpForm input{border:1px solid #687b9b;background:#08101e;color:#fff;border-radius:9px;padding:13px 15px;letter-spacing:.2em;font:800 19px system-ui,sans-serif;width:170px;max-width:100%}
+#mpPanel .mpForm input:focus{outline:2px solid #efc366}
+#mpPanel .mpCode{font:900 clamp(36px,5vw,64px) Impact,sans-serif;color:#efc366;letter-spacing:.2em;margin:8px 0 12px}
+#mpPanel #mpStatus{color:#d4e1f6;min-height:24px;margin:10px 0}
+#mpPanel .mpStatusRow{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:10px 0 14px}
+#mpPanel .mpDot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#e99b5d}
+#mpPanel .mpDot.online{background:#77eba1}
+#mpPanel .mpRoster{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+#mpPanel .mpPlayer{background:#0c1526;border:1px solid #3a4c65;border-radius:9px;padding:8px 11px;display:flex;align-items:center;gap:8px;min-width:0}
+#mpPanel .mpPlayer b{font-weight:900;color:#f1ca77}
+#mpPanel .mpPlayer div{min-width:0;overflow-wrap:anywhere}
+#mpPanel .mpPlayer small{display:block;font-size:11px;color:#aebacf}
+#mpPanel .mpVs{text-align:center;font:900 23px Impact,sans-serif;color:#f1c97b}
+#mpPanel .mpScoreRow{display:flex;justify-content:center;gap:18px;align-items:center;margin:10px 0 16px;text-align:center;flex-wrap:wrap}
+#mpPanel .mpScoreRow .mpScore{font:900 clamp(30px,5vw,60px) Impact,sans-serif;color:#f1cd75}
+#mpPanel .mpScoreRow .mpSide{min-width:180px;max-width:260px;font-size:15px;font-weight:800}
+#mpPanel .mpScoreRow small{display:block;color:#a5b4cc;font-size:12px}
+#mpPanel #mpCanvas{display:block;width:100%;height:auto;aspect-ratio:1000/560;background:#bf915d;border:3px solid #5c738f;border-radius:12px;touch-action:none}
+#mpPanel .mpActions{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+#mpPanel .mpTouch{display:none;justify-content:space-between;align-items:center;gap:10px;margin:12px 0}
+#mpPanel .mpTouch button{border:1px solid #667899;border-radius:9px;background:#1f304a;min-width:53px;min-height:52px;font-weight:900;font-size:16px;touch-action:none}
+#mpPanel .mpTouchPad{display:grid;grid-template-columns:repeat(3,56px);gap:6px}
+#mpPanel .mpTouchPad button:first-child{grid-column:2}
+#mpPanel .mpTouchPad button:nth-child(n+2){grid-row:2}
+#mpPanel .mpTouchBtns{display:grid;grid-template-columns:repeat(2,minmax(64px,1fr));gap:6px}
+#mpPanel #mpLeaderboard{overflow-x:auto}
+#mpPanel table{width:100%;border-collapse:collapse;text-align:left}
+#mpPanel th,#mpPanel td{padding:9px;border-bottom:1px solid #33415c;white-space:nowrap}
+#mpPanel th{color:#efc46e;font-size:12px;letter-spacing:.09em}
+#mpPanel .mpNote{font-size:12px;color:#aabbce}
+#mpPanel .mpFooter{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+@media(pointer:coarse){#mpPanel .mpTouch{display:flex}}
+@media(max-width:680px){#mpPanel .mpCols{grid-template-columns:1fr}#mpPanel .mpTouch{display:flex;flex-wrap:wrap}#mpPanel .mpPlayer{padding:7px}#mpPanel .mpCard{padding:13px}#mpPanel .mpScoreRow .mpSide{min-width:100px}}
